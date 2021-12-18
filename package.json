@@ -1,0 +1,14 @@
+{
+  "name": "working-hour-calculator",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "npm test"
+  },
+  "author": "Yudi Supriyadi",
+  "license": "ISC",
+  "devDependencies": {
+    "eslint": "^8.5.0"
+  }
+}
