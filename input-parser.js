@@ -9,17 +9,13 @@ function calculateMinutesFromMidnight12ClockUntil(time) {
 }
 
 function isWorkHourOrderCorrect(workHour) {
-  const startTime = workHour.split(' - ')[0];
-  const endTime = workHour.split(' - ')[1];
-
   return (
-    calculateMinutesFromMidnight12ClockUntil(endTime) >
-    calculateMinutesFromMidnight12ClockUntil(startTime)
+    calculateMinutesFromMidnight12ClockUntil(workHour.endTime) >
+    calculateMinutesFromMidnight12ClockUntil(workHour.startTime)
   );
 }
 
-function isAllWorkHoursOrderCorrect(workHourFromUserInput) {
-  const workHours = workHourFromUserInput.match(/\d{2}:\d{2} - \d{2}:\d{2}/g);
+function isAllWorkHoursOrderCorrect(workHours) {
   return workHours.every(isWorkHourOrderCorrect);
 }
 
@@ -31,7 +27,7 @@ function isAllWorkHoursFormatValid(workHourFromUserInput) {
   return getUserInputExceptValidWorkHour().trim() === '';
 }
 
-function validateInput(workHourFromUserInput) {
+function validateInputFormat(workHourFromUserInput) {
   function passingTheInput() {
     return workHourFromUserInput;
   }
@@ -47,11 +43,87 @@ function validateInput(workHourFromUserInput) {
   if (!isAllWorkHoursFormatValid(workHourFromUserInput)) {
     rejectInputBecauseInvalid();
   }
-  if (!isAllWorkHoursOrderCorrect(workHourFromUserInput)) {
+  return passingTheInput();
+}
+
+function isValidHour(hour) {
+  return parseInt(hour) >= 0 && parseInt(hour) <= 24;
+}
+
+function isValidMinute(minute) {
+  return parseInt(minute) >= 0 && parseInt(minute) <= 59;
+}
+
+function extractHourFromTime(time) {
+  return time.split(':')[0];
+}
+
+function extractMinuteFromTime(time) {
+  return time.split(':')[1];
+}
+
+function isWorkHoursNotContainsFakeTime(wh) {
+  if (!isValidHour(extractHourFromTime(wh.startTime))) return false;
+  if (!isValidHour(extractHourFromTime(wh.endTime))) return false;
+  if (!isValidMinute(extractMinuteFromTime(wh.startTime))) return false;
+  if (!isValidMinute(extractMinuteFromTime(wh.endTime))) return false;
+  return true;
+}
+
+function isAllWorkHoursNotContainsFakeTime(workHours) {
+  return workHours.every(isWorkHoursNotContainsFakeTime)
+}
+
+function isNoOverlappingTime(workHours) {
+  let isHasOverlappingTime = false;
+  workHours.forEach((baseWh, currentBaseIndex) => {
+    workHours.slice(currentBaseIndex + 1).forEach((otherWh) => {
+      const isBaseStartTimeOverlapping =
+      calculateMinutesFromMidnight12ClockUntil(otherWh.startTime) <
+      calculateMinutesFromMidnight12ClockUntil(baseWh.startTime) &&
+      calculateMinutesFromMidnight12ClockUntil(otherWh.endTime) >
+      calculateMinutesFromMidnight12ClockUntil(baseWh.startTime);
+
+      const isBaseEndTimeOverlapping =
+      calculateMinutesFromMidnight12ClockUntil(otherWh.startTime) <
+      calculateMinutesFromMidnight12ClockUntil(baseWh.endTime) &&
+      calculateMinutesFromMidnight12ClockUntil(otherWh.endTime) >
+      calculateMinutesFromMidnight12ClockUntil(baseWh.endTime);
+
+      const isBaseEqualToOtherWorkHour =
+      calculateMinutesFromMidnight12ClockUntil(otherWh.startTime) ===
+      calculateMinutesFromMidnight12ClockUntil(baseWh.startTime) &&
+      calculateMinutesFromMidnight12ClockUntil(otherWh.endTime) ===
+      calculateMinutesFromMidnight12ClockUntil(baseWh.endTime);
+
+      const isOverlapping = isBaseStartTimeOverlapping || isBaseEndTimeOverlapping || isBaseEqualToOtherWorkHour
+      if (isOverlapping) {
+        isHasOverlappingTime = true;
+      }
+    })
+  });
+  return !isHasOverlappingTime;
+}
+
+function validateWorkHours(workHours) {
+  function passing() {
+    return workHours;
+  }
+  function rejectInputBecauseInvalid() {
+    throw new InvalidInputException();
+  }
+
+  if (!isAllWorkHoursOrderCorrect(workHours)) {
+    rejectInputBecauseInvalid();
+  }
+  if (!isAllWorkHoursNotContainsFakeTime(workHours)) {
+    rejectInputBecauseInvalid();
+  }
+  if (!isNoOverlappingTime(workHours)) {
     rejectInputBecauseInvalid();
   }
 
-  return passingTheInput();
+  return passing();
 }
 
 function parseWorkHourToObjects(workHourInString) {
@@ -70,6 +142,12 @@ function removeMultiplespace(str) {
   return str.replace(/ +/g, ' ');
 }
 
-const parse = pipe(whitespaceToSpace, removeMultiplespace, validateInput, parseWorkHourToObjects);
+const parse = pipe(
+  whitespaceToSpace,
+  removeMultiplespace,
+  validateInputFormat,
+  parseWorkHourToObjects,
+  validateWorkHours
+);
 
 module.exports = { parse };
