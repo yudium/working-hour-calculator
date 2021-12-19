@@ -31,17 +31,17 @@ function validateInputFormat(workHourFromUserInput) {
   function passingTheInput() {
     return workHourFromUserInput;
   }
-  function rejectInputBecauseInvalid() {
-    throw new InvalidInputException();
+  function rejectInputBecauseInvalid(msg) {
+    throw new InvalidInputException(msg);
   }
 
   const workingHours = workHourFromUserInput.match(/\d{2}:\d{2} - \d{2}:\d{2}/g);
   const isUserInputNotContainsAnyWorkHour = workingHours === null;
   if (isUserInputNotContainsAnyWorkHour) {
-    rejectInputBecauseInvalid();
+    rejectInputBecauseInvalid('No work hour entered');
   }
   if (!isAllWorkHoursFormatValid(workHourFromUserInput)) {
-    rejectInputBecauseInvalid();
+    rejectInputBecauseInvalid('Format is incorrect');
   }
   return passingTheInput();
 }
@@ -122,18 +122,18 @@ function validateWorkHours(workHours) {
   function passing() {
     return workHours;
   }
-  function rejectInputBecauseInvalid() {
-    throw new InvalidInputException();
+  function rejectInputBecauseInvalid(msg) {
+    throw new InvalidInputException(msg);
   }
 
   if (!isAllWorkHoursOrderCorrect(workHours)) {
-    rejectInputBecauseInvalid();
+    rejectInputBecauseInvalid('Incorrect work hour order found');
   }
   if (!isAllWorkHoursNotContainsFakeTime(workHours)) {
-    rejectInputBecauseInvalid();
+    rejectInputBecauseInvalid('Fake time found');
   }
   if (!isNoOverlappingTime(workHours)) {
-    rejectInputBecauseInvalid();
+    rejectInputBecauseInvalid('Overlapping time found');
   }
 
   return passing();
