@@ -29,22 +29,26 @@ test('given invalid work hour throw invalid exception', () => {
   const workHourWithInvalidFormat = '9:50 - 15:00';
   const workHourWithUnknownChar = 'a1:50 - 15:00';
   const workHourWithUnknownChar2 = '09:50 - 15:00 abc';
-  const wotkHourWithFakeHour = '77:00 - 12:00';
-  const wotkHourWithFakeHour2 = '12:00 - 88:00';
-  const workHourWithFakeMinute = '12:99 - 13:00';
-  const workHourWithFakeMinute2 = '12:00 - 13:98';
+  const wotkHourWithFakeHourOfStartTime = '77:00 - 99:00';
+  const wotkHourWithFakeHourOfEndTime = '12:00 - 88:00';
+  const workHourWithFakeMinuteOfStarTime = '12:99 - 13:99';
+  const workHourWithFakeMinuteOfEndTime = '12:00 - 13:98';
   const workHourWithIncorrectOrder = '11:00 - 10:00';
   expectThrowInvalidInput(() => parse(workHourWithInvalidFormat));
   expectThrowInvalidInput(() => parse(workHourWithUnknownChar));
   expectThrowInvalidInput(() => parse(workHourWithUnknownChar2));
-  expectThrowInvalidInput(() => parse(wotkHourWithFakeHour));
-  expectThrowInvalidInput(() => parse(wotkHourWithFakeHour2));
-  expectThrowInvalidInput(() => parse(workHourWithFakeMinute));
-  expectThrowInvalidInput(() => parse(workHourWithFakeMinute2));
+  expectThrowInvalidInput(() => parse(wotkHourWithFakeHourOfStartTime));
+  expectThrowInvalidInput(() => parse(wotkHourWithFakeHourOfEndTime));
+  expectThrowInvalidInput(() => parse(workHourWithFakeMinuteOfStarTime));
+  expectThrowInvalidInput(() => parse(workHourWithFakeMinuteOfEndTime));
   expectThrowInvalidInput(() => parse(workHourWithIncorrectOrder));
 });
 
 test('Given overlapping work hour throw invalid exception', () => {
+  const overlappingInside = `
+  10:00 - 11:00
+  10:30 - 10:45
+  `;
   const overlappingExactly = `
   10:00 - 11:00
   10:00 - 11:00
@@ -62,6 +66,7 @@ test('Given overlapping work hour throw invalid exception', () => {
   09:59 - 11:01
   11:00 - 12:00
   `;
+  expectThrowInvalidInput(() => parse(overlappingInside));
   expectThrowInvalidInput(() => parse(overlappingExactly));
   expectThrowInvalidInput(() => parse(overlappingOnStartTime));
   expectThrowInvalidInput(() => parse(overlappingOnEndTime));

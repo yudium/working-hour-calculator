@@ -71,36 +71,49 @@ function isWorkHoursNotContainsFakeTime(wh) {
 }
 
 function isAllWorkHoursNotContainsFakeTime(workHours) {
-  return workHours.every(isWorkHoursNotContainsFakeTime)
+  return workHours.every(isWorkHoursNotContainsFakeTime);
 }
 
 function isNoOverlappingTime(workHours) {
   let isHasOverlappingTime = false;
-  workHours.forEach((baseWh, currentBaseIndex) => {
-    workHours.slice(currentBaseIndex + 1).forEach((otherWh) => {
+  workHours.forEach((baseWh, baseIndex) => {
+    workHours.forEach((otherWh, otherIndex) => {
+      const isCompareAgainstHimself = baseIndex === otherIndex;
+      if (isCompareAgainstHimself) return;
+
       const isBaseStartTimeOverlapping =
-      calculateMinutesFromMidnight12ClockUntil(otherWh.startTime) <
-      calculateMinutesFromMidnight12ClockUntil(baseWh.startTime) &&
-      calculateMinutesFromMidnight12ClockUntil(otherWh.endTime) >
-      calculateMinutesFromMidnight12ClockUntil(baseWh.startTime);
+        calculateMinutesFromMidnight12ClockUntil(otherWh.startTime) <
+          calculateMinutesFromMidnight12ClockUntil(baseWh.startTime) &&
+        calculateMinutesFromMidnight12ClockUntil(otherWh.endTime) >
+          calculateMinutesFromMidnight12ClockUntil(baseWh.startTime);
 
       const isBaseEndTimeOverlapping =
-      calculateMinutesFromMidnight12ClockUntil(otherWh.startTime) <
-      calculateMinutesFromMidnight12ClockUntil(baseWh.endTime) &&
-      calculateMinutesFromMidnight12ClockUntil(otherWh.endTime) >
-      calculateMinutesFromMidnight12ClockUntil(baseWh.endTime);
+        calculateMinutesFromMidnight12ClockUntil(otherWh.startTime) <
+          calculateMinutesFromMidnight12ClockUntil(baseWh.endTime) &&
+        calculateMinutesFromMidnight12ClockUntil(otherWh.endTime) >
+          calculateMinutesFromMidnight12ClockUntil(baseWh.endTime);
 
       const isBaseEqualToOtherWorkHour =
-      calculateMinutesFromMidnight12ClockUntil(otherWh.startTime) ===
-      calculateMinutesFromMidnight12ClockUntil(baseWh.startTime) &&
-      calculateMinutesFromMidnight12ClockUntil(otherWh.endTime) ===
-      calculateMinutesFromMidnight12ClockUntil(baseWh.endTime);
+        calculateMinutesFromMidnight12ClockUntil(otherWh.startTime) ===
+          calculateMinutesFromMidnight12ClockUntil(baseWh.startTime) &&
+        calculateMinutesFromMidnight12ClockUntil(otherWh.endTime) ===
+          calculateMinutesFromMidnight12ClockUntil(baseWh.endTime);
 
-      const isOverlapping = isBaseStartTimeOverlapping || isBaseEndTimeOverlapping || isBaseEqualToOtherWorkHour
+      const isBaseInsideOtherWorkHour =
+        calculateMinutesFromMidnight12ClockUntil(otherWh.startTime) <
+          calculateMinutesFromMidnight12ClockUntil(baseWh.startTime) &&
+        calculateMinutesFromMidnight12ClockUntil(otherWh.endTime) >
+          calculateMinutesFromMidnight12ClockUntil(baseWh.endTime);
+
+      const isOverlapping =
+        isBaseStartTimeOverlapping ||
+        isBaseEndTimeOverlapping ||
+        isBaseEqualToOtherWorkHour ||
+        isBaseInsideOtherWorkHour;
       if (isOverlapping) {
         isHasOverlappingTime = true;
       }
-    })
+    });
   });
   return !isHasOverlappingTime;
 }
@@ -147,7 +160,7 @@ const parse = pipe(
   removeMultiplespace,
   validateInputFormat,
   parseWorkHourToObjects,
-  validateWorkHours
+  validateWorkHours,
 );
 
 module.exports = { parse };
