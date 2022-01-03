@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Work Hour Calculator</title>
+</head>
+
+<body>
+
+  <div style="float: left; margin-right: 20px; ">
+    <textarea style="padding: 15px" autocomplete="off" rows="20" cols="20" placeholder="10:00 - 15:00"
+      id="input"></textarea>
+    <p>Input example:<br />
+      10:00 - 11:00<br />
+      11:30 - 12:30</p>
+    <p>Created by github.com/yudium</p>
+  </div>
+
+  <p style="font-size: 18px">
+    <span id="output"></span>
+    <span id="validation-message"></span>
+  </p>
+
+
+  <script>
+    /**
+     * This code is copied from below repository:
+     * @see https://github.com/yudium/working-hour-calculator
+     */
+    function pipe(...ops) {
+      return ops.reduce((a, b) => (arg) => b(a(arg)));
+    }
+
+    class InvalidInputException extends Error {
+      constructor(msg) {
+        super();
+        this.name = 'InvalidInput';
+        this.message = msg || 'Input is Invalid';
+      }
+    }
+
+    function isTotalQuoteNotBalanced(input) {
+      const matches = input.match(/"/g);
+      const totalQuote = matches === null ? 0 : matches.length;
+      return totalQuote % 2 !== 0;
+    }
+
+    function isSinglelineCellButFormatedAsMultiline(line) {
+      return /^".*"$/.test(line.trim());
+    }
+
+    function isMultilineCellBegin(line, isOnMultilineCell) {
+      return !isOnMultilineCell && line.trim().startsWith('"');
+    }
+
+    function isMultilineCellEnd(line, isOnMultilineCell) {
+      return isOnMultilineCell && line.trim().endsWith('"');
+    }
+
+    function getLastElementArray(arr) {
+      return arr[arr.length - 1];
+    }
+
+    function getCopyArrayWithLastElementExcluded(arr) {
+      return arr.slice(0, arr.length - 1);
+    }
+
+    function excelParse(input) {
+      if (isTotalQuoteNotBalanced(input)) {
+        throw new InvalidInputException('Multiline cell format is incorrect');
+      }
+
+      const lines = input.split('\n');
+
+      let cells = [];
+      let isOnMultilineCell = false;
+      lines.map((line) => line.trim()).forEach((line) => {
+        if (isSinglelineCellButFormatedAsMultiline(line)) {
+          cells.push(line.replace(/"/g, ''));
+        } else if (isMultilineCellEnd(line, isOnMultilineCell)) {
+          isOnMultilineCell = false;
+
+          const lastCellContent = getLastElementArray(cells);
+          cells = [
+            ...getCopyArrayWithLastElementExcluded(cells),
+            lastCellContent + '\n' + line.replace(/"/g, '')
+          ]
+        } else if (isMultilineCellBegin(line, isOnMultilineCell)) {
+          isOnMultilineCell = true;
+
+          cells = [
+            ...cells,
+            line.replace(/"/g, '')
+          ]
+        } else if (isOnMultilineCell) {
+          const lastCellContent = getLastElementArray(cells);
+          cells = [
+            ...getCopyArrayWithLastElementExcluded(cells),
+            lastCellContent + '\n' + line
+          ]
+        } else {
+          cells.push(line);
+        }
+      })
+
+      return cells
+        .map((value) => value.trim())
+        .filter((value) => value !== '');
+    }
+
+    function calculateMinutesFromMidnight12ClockUntil(time) {
+      const hourClock = parseInt(time.split(':')[0]);
+      const minuteClock = parseInt(time.split(':')[1]);
+      const MINUTE_IN_ONE_HOUR = 60;
+      return hourClock * MINUTE_IN_ONE_HOUR + minuteClock;
+    }
+
+    function isWorkHourOrderCorrect(workHour) {
+      return (
+        calculateMinutesFromMidnight12ClockUntil(workHour.endTime) >
+        calculateMinutesFromMidnight12ClockUntil(workHour.startTime)
+      );
+    }
+
+    function isAllWorkHoursOrderCorrect(workHours) {
+      return workHours.every(isWorkHourOrderCorrect);
+    }
+
+    function isAllWorkHoursFormatValid(workHourFromUserInput) {
+      const workingHours = workHourFromUserInput.match(/\d{2}:\d{2} - \d{2}:\d{2}/g);
+      function getUserInputExceptValidWorkHour() {
+        return workingHours.reduce((acc, wh) => acc.replace(wh, ''), workHourFromUserInput);
+      }
+      return getUserInputExceptValidWorkHour().trim() === '';
+    }
+
+    function validateInputFormat(workHourFromUserInput) {
+      function passingTheInput() {
+        return workHourFromUserInput;
+      }
+      function rejectInputBecauseInvalid(msg) {
+        throw new InvalidInputException(msg);
+      }
+
+      const workingHours = workHourFromUserInput.match(/\d{2}:\d{2} - \d{2}:\d{2}/g);
+      const isUserInputNotContainsAnyWorkHour = workingHours === null;
+      if (isUserInputNotContainsAnyWorkHour) {
+        rejectInputBecauseInvalid('No work hour entered');
+      }
+      if (!isAllWorkHoursFormatValid(workHourFromUserInput)) {
+        rejectInputBecauseInvalid('Format is incorrect');
+      }
+      return passingTheInput();
+    }
+
+    function isValidHour(hour) {
+      return parseInt(hour) >= 0 && parseInt(hour) <= 24;
+    }
+
+    function isValidMinute(minute) {
+      return parseInt(minute) >= 0 && parseInt(minute) <= 59;
+    }
+
+    function extractHourFromTime(time) {
+      return time.split(':')[0];
+    }
+
+    function extractMinuteFromTime(time) {
+      return time.split(':')[1];
+    }
+
+    function isWorkHoursNotContainsFakeTime(wh) {
+      if (!isValidHour(extractHourFromTime(wh.startTime))) return false;
+      if (!isValidHour(extractHourFromTime(wh.endTime))) return false;
+      if (!isValidMinute(extractMinuteFromTime(wh.startTime))) return false;
+      if (!isValidMinute(extractMinuteFromTime(wh.endTime))) return false;
+      return true;
+    }
+
+    function isAllWorkHoursNotContainsFakeTime(workHours) {
+      return workHours.every(isWorkHoursNotContainsFakeTime);
+    }
+
+    function isNoOverlappingTime(workHours) {
+      let isHasOverlappingTime = false;
+      workHours.forEach((baseWh, baseIndex) => {
+        workHours.forEach((otherWh, otherIndex) => {
+          const isCompareAgainstHimself = baseIndex === otherIndex;
+          if (isCompareAgainstHimself) return;
+
+          const isBaseStartTimeOverlapping =
+            calculateMinutesFromMidnight12ClockUntil(otherWh.startTime) <
+            calculateMinutesFromMidnight12ClockUntil(baseWh.startTime) &&
+            calculateMinutesFromMidnight12ClockUntil(otherWh.endTime) >
+            calculateMinutesFromMidnight12ClockUntil(baseWh.startTime);
+
+          const isBaseEndTimeOverlapping =
+            calculateMinutesFromMidnight12ClockUntil(otherWh.startTime) <
+            calculateMinutesFromMidnight12ClockUntil(baseWh.endTime) &&
+            calculateMinutesFromMidnight12ClockUntil(otherWh.endTime) >
+            calculateMinutesFromMidnight12ClockUntil(baseWh.endTime);
+
+          const isBaseEqualToOtherWorkHour =
+            calculateMinutesFromMidnight12ClockUntil(otherWh.startTime) ===
+            calculateMinutesFromMidnight12ClockUntil(baseWh.startTime) &&
+            calculateMinutesFromMidnight12ClockUntil(otherWh.endTime) ===
+            calculateMinutesFromMidnight12ClockUntil(baseWh.endTime);
+
+          const isBaseInsideOtherWorkHour =
+            calculateMinutesFromMidnight12ClockUntil(otherWh.startTime) <
+            calculateMinutesFromMidnight12ClockUntil(baseWh.startTime) &&
+            calculateMinutesFromMidnight12ClockUntil(otherWh.endTime) >
+            calculateMinutesFromMidnight12ClockUntil(baseWh.endTime);
+
+          const isOverlapping =
+            isBaseStartTimeOverlapping ||
+            isBaseEndTimeOverlapping ||
+            isBaseEqualToOtherWorkHour ||
+            isBaseInsideOtherWorkHour;
+          if (isOverlapping) {
+            isHasOverlappingTime = true;
+          }
+        });
+      });
+      return !isHasOverlappingTime;
+    }
+
+    function validateWorkHours(workHours) {
+      function passing() {
+        return workHours;
+      }
+      function rejectInputBecauseInvalid(msg) {
+        throw new InvalidInputException(msg);
+      }
+
+      if (!isAllWorkHoursOrderCorrect(workHours)) {
+        rejectInputBecauseInvalid('Incorrect work hour order found');
+      }
+      if (!isAllWorkHoursNotContainsFakeTime(workHours)) {
+        rejectInputBecauseInvalid('Fake time found');
+      }
+      if (!isNoOverlappingTime(workHours)) {
+        rejectInputBecauseInvalid('Overlapping time found');
+      }
+
+      return passing();
+    }
+
+    function parseWorkHourToObjects(workHourInString) {
+      const workingHours = workHourInString.match(/\d{2}:\d{2} - \d{2}:\d{2}/g);
+      return workingHours.map((wh) => ({
+        startTime: wh.split(' - ')[0],
+        endTime: wh.split(' - ')[1],
+      }));
+    }
+
+    function whitespaceToSpace(str) {
+      return str.replace(/\s/g, ' ');
+    }
+
+    function removeMultiplespace(str) {
+      return str.replace(/ +/g, ' ');
+    }
+
+    const parse = pipe(
+      whitespaceToSpace,
+      removeMultiplespace,
+      validateInputFormat,
+      parseWorkHourToObjects,
+      validateWorkHours,
+    );
+
+    function sum(arr) {
+      return arr.reduce((acc, value) => acc + value, 0);
+    }
+
+    function calculateTimeDifferenceInMinute(startTime, endTime) {
+      return (
+        calculateMinutesFromMidnight12ClockUntil(endTime) -
+        calculateMinutesFromMidnight12ClockUntil(startTime)
+      );
+    }
+
+    function calculateWorkDurationInMinutes(workHours) {
+      const workDurations = workHours.map((wh) =>
+        calculateTimeDifferenceInMinute(wh.startTime, wh.endTime),
+      );
+      return sum(workDurations);
+    }
+
+    function convertMinuteToHour(duration) {
+      return duration / 60;
+    }
+
+    const calculateWorkDuration = pipe(calculateWorkDurationInMinutes, convertMinuteToHour);
+
+    function calculate(userInput) {
+      document.getElementById("output").innerHTML = '';
+      document.getElementById("validation-message").innerHTML = '';
+      document.getElementById("output").innerHTML += '<div>These number is in hour format.</div>';
+      document.getElementById("output").innerHTML += '<div>Just copy below and paste directly on excel:</div><br/>';
+
+      try {
+        const workHourCells = excelParse(userInput);
+        parse(workHourCells.join('\n')); // NOTE: this is hack, wrong architecture
+        workHourCells.forEach((userInputWorkHours) => {
+          const workHours = parse(userInputWorkHours);
+          const duration = calculateWorkDuration(workHours);
+          document.getElementById("output").innerHTML += '<div>' + duration + '</div>';
+        });
+      } catch (e) {
+        if (e instanceof InvalidInputException) {
+          document.getElementById("validation-message").innerHTML = e.message;
+        } else {
+          throw e;
+        }
+      }
+    }
+
+
+  </script>
+  <script>
+    function debounce(ms) {
+      let timeout;
+      return (callback) => {
+        if (timeout) {
+          clearTimeout(timeout);
+        }
+        timeout = setTimeout(() => {
+          callback();
+        }, ms)
+      }
+    }
+
+    const debounceFn = debounce(500);
+    document.getElementById("input").addEventListener("input", (e) => {
+      document.getElementById("output").innerHTML = 'waiting you stop typing.';
+      document.getElementById("validation-message").innerHTML = '';
+      debounceFn(() => calculate(e.target.value));
+    });
+  </script>
+</body>
+
+</html>
