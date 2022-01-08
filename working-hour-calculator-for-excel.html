@@ -19,11 +19,11 @@
     <p>Created by github.com/yudium</p>
   </div>
 
-  <p style="font-size: 18px">
+  <div style="float: left; margin-right: 20px; " style="font-size: 18px">
     <span id="output"></span>
     <span id="validation-message"></span>
-  </p>
-
+    <div id="total-output" style="margin-top: 20px"></div>
+  </div>
 
   <script>
     /**
@@ -300,17 +300,21 @@
     function calculate(userInput) {
       document.getElementById("output").innerHTML = '';
       document.getElementById("validation-message").innerHTML = '';
+      document.getElementById("total-output").innerHTML = '';
       document.getElementById("output").innerHTML += '<div>These number is in hour format.</div>';
       document.getElementById("output").innerHTML += '<div>Just copy below and paste directly on excel:</div><br/>';
 
       try {
         const workHourCells = excelParse(userInput);
         parse(workHourCells.join('\n')); // NOTE: this is hack, wrong architecture
+        let totalDuration = 0;
         workHourCells.forEach((userInputWorkHours) => {
           const workHours = parse(userInputWorkHours);
           const duration = calculateWorkDuration(workHours);
           document.getElementById("output").innerHTML += '<div>' + duration + '</div>';
+          totalDuration += duration
         });
+        document.getElementById("total-output").innerHTML = 'Total Duration: ' + totalDuration;
       } catch (e) {
         if (e instanceof InvalidInputException) {
           document.getElementById("validation-message").innerHTML = e.message;
